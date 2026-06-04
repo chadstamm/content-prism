@@ -12,6 +12,12 @@ Think of your idea as a beam of **white light** — it looks like everyone else'
 
 ---
 
+## What you get
+
+Every run ends in a styled, self-contained **Beam** — the recommended angle, the runners-up scored, and the holes named, with Save-as-PDF, Markdown export, and Share built in:
+
+![A Content Prism Beam — the styled one-page output](examples/beam-preview.jpg)
+
 ## What it does
 
 Two moves, always in order:
