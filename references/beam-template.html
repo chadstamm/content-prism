@@ -112,7 +112,7 @@
   .beam-actions button svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .beam-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--c-ink);color:var(--c-white);font-family:var(--f-mono);font-size:12px;letter-spacing:.03em;padding:11px 20px;border-radius:24px;opacity:0;pointer-events:none;transition:all .3s ease;z-index:60;box-shadow:0 14px 32px -16px rgba(12,35,64,.6)}
   .beam-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-  @media print{.beam-actions,.beam-toast{display:none!important}}
+  @media print{.beam-actions,.beam-toast{display:none!important}html,body{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}.wrap{padding-bottom:0!important}}
   @media(max-width:640px){.beam-actions{top:auto;bottom:14px;right:14px}}
 </style>
 </head>
@@ -191,16 +191,23 @@
 </div>
 
 <div class="beam-actions">
-  <button onclick="prismDownload()" title="Download this Beam as a self-contained HTML file"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>Download</button>
+  <button onclick="prismPDF()" title="Save this Beam as a PDF"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>Save PDF</button>
   <button onclick="prismShare()" title="Share this Beam"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>Share</button>
 </div>
 <div class="beam-toast" id="prismToast"></div>
 <script>
   function prismFilename(){return (document.title||'the-beam').replace(/^The Beam[\s\u2014-]*/i,'').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase()||'the-beam';}
+  function prismToast(msg){var t=document.getElementById('prismToast');t.textContent=msg;t.classList.add('show');clearTimeout(window._pt);window._pt=setTimeout(function(){t.classList.remove('show');},2800);}
+  function prismPDF(){prismToast('Opening print \u2014 choose \u201cSave as PDF\u201d.');setTimeout(function(){window.print();},250);}
   function prismHTML(){return '<!DOCTYPE html>\n'+document.documentElement.outerHTML;}
-  function prismToast(msg){var t=document.getElementById('prismToast');t.textContent=msg;t.classList.add('show');clearTimeout(window._pt);window._pt=setTimeout(function(){t.classList.remove('show');},2600);}
-  function prismDownload(){var blob=new Blob([prismHTML()],{type:'text/html'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=prismFilename()+'.html';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href);},1000);prismToast('Downloaded \u2014 attach or send it anywhere.');}
-  async function prismShare(){var name=prismFilename()+'.html';try{var file=new File([prismHTML()],name,{type:'text/html'});if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:document.title,text:'A Content Prism Beam'});return;}}catch(e){if(e&&e.name==='AbortError')return;}if(navigator.share){try{await navigator.share({title:document.title,text:document.title});return;}catch(e){if(e&&e.name==='AbortError')return;}}prismDownload();prismToast('Native share unavailable \u2014 downloaded instead.');}
+  async function prismShare(){
+    try{
+      var file=new File([prismHTML()],prismFilename()+'.html',{type:'text/html'});
+      if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:document.title,text:'A Content Prism Beam'});return;}
+    }catch(e){if(e&&e.name==='AbortError')return;}
+    if(navigator.share){try{await navigator.share({title:document.title,text:document.title});return;}catch(e){if(e&&e.name==='AbortError')return;}}
+    prismToast('Sharing is mobile-only \u2014 use \u201cSave PDF\u201d to send it.');
+  }
 </script>
 </body>
 </html>
