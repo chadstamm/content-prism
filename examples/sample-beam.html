@@ -112,7 +112,22 @@
   .beam-actions button svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .beam-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--c-ink);color:var(--c-white);font-family:var(--f-mono);font-size:12px;letter-spacing:.03em;padding:11px 20px;border-radius:24px;opacity:0;pointer-events:none;transition:all .3s ease;z-index:60;box-shadow:0 14px 32px -16px rgba(12,35,64,.6)}
   .beam-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-  @media print{.beam-actions,.beam-toast{display:none!important}html,body{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}.wrap{padding-bottom:0!important}}
+    /* card hover (screen) */
+  .cal,.band{transition:transform .18s ease,box-shadow .18s ease}
+  .cal:hover,.band:hover{transform:translateY(-2px);box-shadow:0 16px 34px -24px rgba(12,35,64,.45)}
+  /* print / PDF — keep sections whole, headings with content */
+  @media print{
+    @page{margin:14mm}
+    html,body{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;background:#fff!important}
+    .beam-actions,.beam-toast{display:none!important}
+    .wrap{max-width:100%!important;padding:0 4mm!important}
+    *{animation:none!important;transition:none!important}
+    .masthead,.hero,section,.beam,.band,.cal,.cal-grid,.holes-list li,footer{break-inside:avoid;page-break-inside:avoid}
+    .sec-label{break-after:avoid;page-break-after:avoid}
+    .beam .body,.cal p,.wl li,.holes-list li{orphans:3;widows:3}
+    section{padding:20px 0}
+    .masthead{padding-top:8px}
+  }
   @media(max-width:640px){.beam-actions{top:auto;bottom:14px;right:14px}}
 </style>
 </head>
@@ -202,21 +217,40 @@
 
 <div class="beam-actions">
   <button onclick="prismPDF()" title="Save this Beam as a PDF"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>Save PDF</button>
+  <button onclick="prismMD()" title="Download this Beam as Markdown"><svg viewBox="0 0 24 24"><path d="M14 3H6a1 1 0 00-1 1v16a1 1 0 001 1h12a1 1 0 001-1V8z"/><path d="M14 3v5h5"/><path d="M9.5 12.5l2 2 2-2M11.5 14.5v-4"/></svg>Save .md</button>
   <button onclick="prismShare()" title="Share this Beam"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>Share</button>
 </div>
 <div class="beam-toast" id="prismToast"></div>
 <script>
+  var $=function(s){return document.querySelector(s);};
+  var $$=function(s){return Array.prototype.slice.call(document.querySelectorAll(s));};
+  var TX=function(el){return el?el.textContent.replace(/\s+/g,' ').trim():'';};
   function prismFilename(){return (document.title||'the-beam').replace(/^The Beam[\s\u2014-]*/i,'').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase()||'the-beam';}
   function prismToast(msg){var t=document.getElementById('prismToast');t.textContent=msg;t.classList.add('show');clearTimeout(window._pt);window._pt=setTimeout(function(){t.classList.remove('show');},2800);}
+  function prismDL(text,ext,type,note){var blob=new Blob([text],{type:type});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=prismFilename()+ext;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href);},1000);prismToast(note);}
   function prismPDF(){prismToast('Opening print \u2014 choose \u201cSave as PDF\u201d.');setTimeout(function(){window.print();},250);}
+  function prismMD(){
+    var L=[];
+    L.push('# '+TX($('.idea-title')));
+    var meta=$$('.meta span').map(TX); if(meta.length){L.push('');L.push('> '+meta.join('  \u00b7  '));}
+    L.push('');L.push('## Calibrate \u2014 who this serves');
+    $$('.cal').forEach(function(c){L.push('- **'+TX(c.querySelector('h4'))+'** \u2014 '+TX(c.querySelector('p')));});
+    L.push('');L.push('## White Light \u2014 the saturated takes this avoids');
+    $$('.wl li').forEach(function(li){L.push('- '+TX(li));});
+    L.push('');L.push('## The Beam \u2014 recommended delivery');
+    L.push('**'+TX($('.lens-tag'))+'**');L.push('');L.push(TX($('.beam .body')));
+    L.push('');L.push('## Bands also considered');
+    $$('.band').forEach(function(b){var full=TX(b.querySelector('.b-text'));var em=b.querySelector('.b-text em');var c=em?TX(em):'';var head=c?full.slice(0,full.length-c.length).trim():full;L.push('- **'+head+'** ('+TX(b.querySelector('.score'))+') \u2014 '+c);});
+    L.push('');L.push('## Holes to close');
+    $$('.holes-list li').forEach(function(li){L.push('- '+TX(li));});
+    L.push('');L.push('---');L.push('*Content Prism \u00b7 ideation output. The taste and craft are yours.*');
+    prismDL(L.join('\n'),'.md','text/markdown;charset=utf-8','Markdown downloaded.');
+  }
   function prismHTML(){return '<!DOCTYPE html>\n'+document.documentElement.outerHTML;}
   async function prismShare(){
-    try{
-      var file=new File([prismHTML()],prismFilename()+'.html',{type:'text/html'});
-      if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:document.title,text:'A Content Prism Beam'});return;}
-    }catch(e){if(e&&e.name==='AbortError')return;}
+    try{var file=new File([prismHTML()],prismFilename()+'.html',{type:'text/html'});if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:document.title,text:'A Content Prism Beam'});return;}}catch(e){if(e&&e.name==='AbortError')return;}
     if(navigator.share){try{await navigator.share({title:document.title,text:document.title});return;}catch(e){if(e&&e.name==='AbortError')return;}}
-    prismToast('Sharing is mobile-only \u2014 use \u201cSave PDF\u201d to send it.');
+    prismToast('Sharing is mobile-only \u2014 use Save PDF or Save .md to send it.');
   }
 </script>
 </body>
